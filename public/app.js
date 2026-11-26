@@ -16,7 +16,7 @@ const I18N = {
       'Quand toutes tes cases sont remplies, tu peux appuyer sur STOP : tout le monde s’arrête.',
       'Chaque joueur barre les mots faux des autres. Un mot est barré si plus de la moitié des autres joueurs le barrent.',
       'Mot juste et unique : 10 points. Mot écrit aussi par un autre : 5. Vide ou faux : 0.',
-      'Sur les résultats, chacun peut modifier les points de n’importe quel mot, même avec une mauvaise lettre.'],
+      'Sur les résultats, l’hôte peut modifier les points de n’importe quel mot, même avec une mauvaise lettre.'],
     room: 'Salle', copy: 'Copier le lien', copied: 'Lien copié', you: 'toi',
     setup: 'Prépare la partie', sendLink: 'Envoie le lien à tes amis (bouton « Copier le lien » en haut), puis lance la partie.',
     gameLang: 'Langue des réponses', boxes: 'Les cases', time: 'Durée',
@@ -31,7 +31,7 @@ const I18N = {
     done: "J'ai fini", undo: 'Je change d’avis', force: 'Compter maintenant', waiting: 'On attend : {n}',
     wrongL: '(mauvaise lettre)', box: 'Case', total: 'Total',
     resT: 'Manche {r} : les résultats',
-    resHint: 'Les points comptent seulement les mots non barrés. Chacun peut ajuster les points avec − et +.',
+    resHint: 'Les points comptent seulement les mots non barrés.', resHintHost: 'Tu es l’hôte : tu peux ajuster les points de chaque mot avec − et +.',
     next: 'Manche suivante', final: 'Classement final', hostNext: "L'hôte lance la manche suivante.",
     editedBy: 'modifié par {n}', reset: 'Revenir au calcul auto', minus: 'Moins 5 points', plus: 'Plus 5 points',
     cats: { bent: 'Prénom fille', walad: 'Prénom garçon', blad: 'Pays', fakiha: 'Fruit / Légume', hayawen: 'Animal', jamad: 'Objet', nabat: 'Plante', mehna: 'Métier', lawn: 'Couleur', mekla: 'Plat', marka: 'Marque', mghanni: 'Chanteur' },
@@ -48,7 +48,7 @@ const I18N = {
       'عندما تملأ كل الخانات يمكنك الضغط على «قف!» فيتوقف الجميع.',
       'يشطب كل لاعب الكلمات الخاطئة عند الآخرين، وتُشطب الكلمة إذا شطبها أكثر من نصف اللاعبين الآخرين.',
       'كلمة صحيحة لم يكتبها غيرك: 10 نقاط. كلمة كتبها لاعب آخر أيضًا: 5. فارغة أو خاطئة: 0.',
-      'في النتائج يمكن لكل لاعب تعديل نقاط أي كلمة، حتى لو كان حرفها خاطئًا.'],
+      'في النتائج يمكن للمضيف تعديل نقاط أي كلمة، حتى لو كان حرفها خاطئًا.'],
     room: 'الغرفة', copy: 'انسخ الرابط', copied: 'تم النسخ', you: 'أنت',
     setup: 'جهّز اللعبة', sendLink: 'أرسل الرابط إلى أصدقائك (زر «انسخ الرابط» في الأعلى)، ثم ابدأ اللعبة.',
     gameLang: 'لغة الإجابات', boxes: 'الخانات', time: 'المدة',
@@ -63,7 +63,7 @@ const I18N = {
     done: 'انتهيت', undo: 'غيّرت رأيي', force: 'احسب الآن', waiting: 'ننتظر: {n}',
     wrongL: '(حرف خاطئ)', box: 'الخانة', total: 'المجموع',
     resT: 'الجولة {r}: النتائج',
-    resHint: 'تُحسب النقاط للكلمات غير المشطوبة فقط، ويمكن لكل لاعب تعديلها بـ − و +.',
+    resHint: 'تُحسب النقاط للكلمات غير المشطوبة فقط.', resHintHost: 'أنت المضيف: يمكنك تعديل نقاط كل كلمة بـ − و +.',
     next: 'الجولة التالية', final: 'الترتيب النهائي', hostNext: 'المضيف يبدأ الجولة التالية.',
     editedBy: 'عدّلها {n}', reset: 'الرجوع إلى الحساب التلقائي', minus: 'ناقص 5 نقاط', plus: 'زائد 5 نقاط',
     cats: { bent: 'اسم بنت', walad: 'اسم ولد', blad: 'بلد', fakiha: 'فاكهة / خضار', hayawen: 'حيوان', jamad: 'جماد', nabat: 'نبات', mehna: 'مهنة', lawn: 'لون', mekla: 'أكلة', marka: 'علامة تجارية', mghanni: 'مغنٍّ' },
@@ -163,7 +163,7 @@ function render() {
     bind(amHost);
   }
   if (S.status === 'review') renderVote();
-  if (S.status === 'results') renderResults();
+  if (S.status === 'results') renderResults(amHost);
 }
 
 const door = l => `<div class="door${S.lang === 'ar' ? ' ar' : ''}"><b>${esc(l)}</b></div>`;
@@ -200,7 +200,7 @@ function voteShell(amHost) {
 }
 function resultsShell(amHost) {
   return `<div class="stage">${door(S.letter)}<div class="side"><h2>${t('resT', { r: S.round })}</h2>
-    <p class="muted">${t('resHint')}</p>
+    <p class="muted">${t('resHint')}${amHost ? ' ' + t('resHintHost') : ''}</p>
     ${amHost ? `<div class="row"><button id="bNext">${t('next')}</button><button class="ghost" id="bLob">${t('final')}</button></div>` : `<p class="note">${t('hostNext')}</p>`}</div></div>
     <div class="scroll"><table id="rv"></table></div>`;
 }
@@ -255,17 +255,17 @@ function renderVote() {
   T.querySelectorAll('td.h').forEach(td => (td.onclick = () => socket.emit('vote', { playerId: td.dataset.p, i: Number(td.dataset.i) })));
 }
 
-function renderResults() {
+function renderResults(amHost) {
   const T = $('#rv'), ps = S.players.filter(p => p.answers), over = new Map(S.over);
   T.innerHTML = head(ps) + '<tbody>' +
     S.cats.map((k, i) => `<tr><td><b>${esc(catName(k))}</b></td>${ps.map(p => {
       const tx = p.answers[i] || '', pts = p.pts[i] || 0, by = over.get(p.id + '|' + i);
       return `<td>${word(tx, !pts && !!tx)}
         <div class="pts" data-p="${esc(p.id)}" data-i="${i}" data-v="${pts}">
-          <button class="mini" data-d="-5" aria-label="${t('minus')}" ${pts <= 0 ? 'disabled' : ''}>−</button>
+          ${amHost ? `<button class="mini" data-d="-5" aria-label="${t('minus')}" ${pts <= 0 ? 'disabled' : ''}>−</button>` : ''}
           <span class="pt p${pts >= 10 ? 10 : pts >= 5 ? 5 : 0}">${pts}</span>
-          <button class="mini" data-d="5" aria-label="${t('plus')}" ${pts >= 100 ? 'disabled' : ''}>+</button>
-          ${by ? `<button class="mini ghost reset" aria-label="${t('reset')}" title="${t('reset')}">↺</button>` : ''}
+          ${amHost ? `<button class="mini" data-d="5" aria-label="${t('plus')}" ${pts >= 100 ? 'disabled' : ''}>+</button>` : ''}
+          ${amHost && by ? `<button class="mini ghost reset" aria-label="${t('reset')}" title="${t('reset')}">↺</button>` : ''}
         </div>${by ? `<div class="note edited"></div>` : ''}</td>`;
     }).join('')}</tr>`).join('') +
     `<tr class="sum"><td>${t('total')}</td>${ps.map(p => `<td>+${p.roundSum}</td>`).join('')}</tr></tbody>`;

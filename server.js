@@ -280,11 +280,11 @@ io.on('connection', socket => {
     checkAllDone(room);
   });
 
-  // ay joueur ynajem ybaddel el ni9at mta3 ay kelma (7atta bel 7arf el ghalet)
+  // ken el host ynajem ybaddel el ni9at mta3 ay kelma (7atta bel 7arf el ghalet)
   socket.on('setpts', ({ playerId, i, v }) => {
     const p = me();
     i = Number(i);
-    if (!p || room.status !== 'results') return;
+    if (!p || !isHost() || room.status !== 'results') return;
     const target = room.players.get(playerId);
     if (!target || !target.answers || !(i >= 0 && i < room.cats.length)) return;
     const key = playerId + '|' + i;

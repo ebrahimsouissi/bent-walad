@@ -37,7 +37,7 @@ Node.js + Express + Socket.IO. Bla base de données: les salles y3ichou fel mém
 - Kol round yo5rej 7arf. Elli ykammel el cases lkol ynajem yenzel **STOP**, wela el wa9t youfa.
 - Ba3d el STOP, **kol joueur ychateb** el kelmet el ghaltin mta3 les autres. Kelma tetchateb ki akther men nos les autres joueurs ychatbouha.
 - Ki l'kol yenzlou "J'ai fini / انتهيت", el score yet7seb ken 3al kelmet elli mouch mchatbin: **10** kelma wa7dek, **5** ki ktebha 7ad ekher, **0** fergha/ghalta/mchatba.
-- Fel natija, **ay joueur ynajem ybaddel el ni9at** mta3 ay kelma b'− w + (7atta bel 7arf el ghalet). ↺ traja3 el 7seb automatique.
+- Fel natija, **ken el host ynajem ybaddel el ni9at** mta3 ay kelma b'− w + (7atta bel 7arf el ghalet). ↺ traja3 el 7seb automatique. Les autres ychoufou el ni9at w "✎ modifié par …".
 - Bel 3arbi: el tachkil ma yet7sebch, أ/إ/آ = ا, w "ال" fel bidaya ma tet7sebch (البرتقال mrigla l'7arf ب).
 - Ken el host yo5rej, joueur ekher ywalli host automatiquement.
 

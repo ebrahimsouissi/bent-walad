@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" dir="ltr">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Bent w Walad</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Baloo+Bhaijaan+2:wght@600;800&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 /* VOICE: playful café game night, warm and quick.
    IDEA: a Sidi Bou Said door — the letter of the round is painted on a blue studded door.
@@ -71,43 +71,54 @@ td.c.h:hover{background:var(--wall)}
 td.mine{background:light-dark(#fde8e7,#3a1716)}.vt{display:inline-block;margin-left:6px;border-radius:8px;padding:0 6px;font-size:13px;font-weight:800;background:var(--red);color:#fff}
 .timer.hot{color:var(--red)}
 .rank{margin:8px 0 0;padding-left:24px;font-size:18px}.rank li{padding:4px 0}.rank b{margin-left:10px;color:var(--blue2)}
+.langBtn{min-height:36px;padding:0 14px;font-size:15px}
+.langTop{display:flex;justify-content:flex-end;padding:12px max(5vw,16px) 0}
+[dir=rtl] body{font-family:"Baloo Bhaijaan 2",Nunito,system-ui,sans-serif}
+[dir=rtl] h1,[dir=rtl] h2,[dir=rtl] .timer,[dir=rtl] .banner{font-family:"Baloo Bhaijaan 2","Baloo 2",sans-serif}
+.door.ar b{font-family:"Baloo Bhaijaan 2","Baloo 2",sans-serif;line-height:1.3}
+[dir=rtl] .door::after{right:auto;left:22%}
+[dir=rtl] th,[dir=rtl] td{text-align:right}
+.rules{padding-inline-start:20px;padding-left:revert}
+.pts{display:flex;align-items:center;gap:4px;margin-top:6px}
+.pts .pt{margin:0;min-width:38px}
+button.mini{min-height:32px;min-width:32px;padding:0;border-radius:8px;font-size:18px;line-height:1}
+button.mini.ghost{border-width:1px;font-size:16px}
+.edited{margin-top:2px}
+.rank b{margin-inline-start:10px;margin-left:revert}
+.pl i{margin-inline-start:6px;margin-left:revert}
 </style>
 </head>
 <body>
 <main id="join">
+ <div class="langTop"><button class="ghost langBtn">العربية</button></div>
  <div class="band hero">
   <div class="door"><b>B</b></div>
   <div>
-   <h1>Bent w Walad, el version online</h1>
-   <p class="muted">A3mel salle, ab3ath el code l's7abek, w kol round el 7arf yo5rej 3al bab. Elli ykammel lowel y9oul STOP.</p>
+   <h1 data-t="title"></h1>
+   <p class="muted" data-t="intro"></p>
    <div class="card">
-    <label for="nm">Esmek</label>
-    <input id="nm" maxlength="20" placeholder="Amina" autocomplete="nickname">
+    <label for="nm" data-t="name"></label>
+    <input id="nm" maxlength="20" data-ph="namePh" autocomplete="nickname" dir="auto">
     <div class="row" style="margin-top:14px">
-     <button id="bNew">A3mel salle jdida</button>
+     <button id="bNew" data-t="newRoom"></button>
     </div>
     <div class="row" style="margin-top:14px">
-     <div><label for="cd">3andek code ?</label><input id="cd" maxlength="6" placeholder="KSKS" style="text-transform:uppercase"></div>
-     <button id="bJoin" class="ghost">Od5ol</button>
+     <div><label for="cd" data-t="haveCode"></label><input id="cd" maxlength="6" placeholder="KSKS" dir="ltr" style="text-transform:uppercase"></div>
+     <button id="bJoin" class="ghost" data-t="join"></button>
     </div>
-    <p class="note" id="jmsg">Nconnecti…</p>
+    <p class="note" id="jmsg"></p>
    </div>
   </div>
  </div>
  <div class="band">
-  <h2>Les règles</h2>
-  <ul class="rules">
-   <li>Kol round yo5rej 7arf. Tektib kelma tebda bih f'kol case.</li>
-   <li>Ki tkammel el cases lkol, tnajem tenzel <b>STOP</b>, w l'kol yw9fou.</li>
-   <li>Kelma s7i7a w wa7dek elli ktebha: <b>10</b>. Kelma ktebha 7ad ekher: <b>5</b>. Fergha wela ghalta: <b>0</b>.</li>
-   <li>Ba3d el STOP, kol joueur ychateb el kelmet el ghaltin mta3 les autres. El score yet7seb ken 3al kelmet elli mouch mchatbin.</li>
-  </ul>
+  <h2 data-t="rulesT"></h2>
+  <ul class="rules" id="rules"></ul>
  </div>
 </main>
 
 <div id="game" hidden>
  <div class="top">
-  <div><span class="muted">Salle</span> <span class="code" id="tCode"></span> <button class="ghost" id="bCopy" style="margin-left:8px">Copier le lien</button> <span class="note" id="conn" hidden>Connexion ma9tou3a…</span></div>
+  <div><span class="muted" data-t="room"></span> <span class="code" id="tCode" dir="ltr"></span> <button class="ghost" id="bCopy" data-t="copy"></button> <button class="ghost langBtn">العربية</button> <span class="note" id="conn" hidden data-t="lost"></span></div>
   <div class="players" id="players"></div>
  </div>
  <div class="band" id="stage"></div>

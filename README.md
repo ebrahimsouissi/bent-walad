@@ -1,6 +1,6 @@
 # Bent w Walad 🇹🇳
 
-Jeu tounsi "Bent w Walad" (Petit Bac), multijoueur en temps réel.
+Jeu tounsi "Bent w Walad" (Petit Bac), multijoueur en temps réel, en **français** wela bel **3arbiya el fos7a**.
 Node.js + Express + Socket.IO. Bla base de données: les salles y3ichou fel mémoire mta3 el serveur.
 
 ## Tal3eb 3al PC mta3ek (local)
@@ -31,12 +31,14 @@ Node.js + Express + Socket.IO. Bla base de données: les salles y3ichou fel mém
 
 ## Kifech tetla3eb
 
+- Kol joueur yekhtar logha mta3 l'page (bouton **العربية / Français**).
 - Wa7ed ya3mel **salle** (howa el host ★), ya3ti el lien wela el code l'les autres.
-- El host yekhtar les cases (3 au minimum) w el wa9t, w yenzel "Ebda el partie".
+- El host yekhtar **logha mta3 el ijabet** (7orouf latin wela 3arbiya), les cases (3 au minimum) w el wa9t.
 - Kol round yo5rej 7arf. Elli ykammel el cases lkol ynajem yenzel **STOP**, wela el wa9t youfa.
-- Score: kelma s7i7a w wa7dek **10**, kelma ktebha 7ad ekher **5**, fergha/ghalta **0**.
-- Ba3d el STOP, **kol joueur ychateb** el kelmet el ghaltin mta3 les autres (yenzel 3la el kelma). Kelma tetchateb ki akther men nos les autres joueurs ychatbouha.
-- Ki l'kol yenzlou **"Kammelt"**, el score yet7seb **ken 3al kelmet elli mouch mchatbin**. El host ynajem yenzel "7seb tawa" ken 7ad 9a3ed ma ykammelch.
+- Ba3d el STOP, **kol joueur ychateb** el kelmet el ghaltin mta3 les autres. Kelma tetchateb ki akther men nos les autres joueurs ychatbouha.
+- Ki l'kol yenzlou "J'ai fini / انتهيت", el score yet7seb ken 3al kelmet elli mouch mchatbin: **10** kelma wa7dek, **5** ki ktebha 7ad ekher, **0** fergha/ghalta/mchatba.
+- Fel natija, **ay joueur ynajem ybaddel el ni9at** mta3 ay kelma b'− w + (7atta bel 7arf el ghalet). ↺ traja3 el 7seb automatique.
+- Bel 3arbi: el tachkil ma yet7sebch, أ/إ/آ = ا, w "ال" fel bidaya ma tet7sebch (البرتقال mrigla l'7arf ب).
 - Ken el host yo5rej, joueur ekher ywalli host automatiquement.
 
 ## Structure

@@ -54,6 +54,8 @@ function pickLetter(used, lang) {
 
 const clean = (s, max) => String(s ?? '').replace(/[\u0000-\u001f]/g, '').trim().slice(0, max);
 const answered = room => [...room.players.values()].filter(p => p.answers);
+// kelma s7i7a automatiquement, wela el host 9belha (7atta bel 7arf el ghalet)
+const letterOk = (room, p, i) => room.accept.has(p.id + '|' + i) || autoValid(p.answers[i], room.letter);
 
 // ---------- votes ----------
 // kelma tetchateb ki akther men nos les autres joueurs (ghir moula-ha) ychatbouha
@@ -70,7 +72,7 @@ function computeScores(room) {
   room.cats.forEach((_, i) => {
     const vals = players.map(p => {
       const t = p.answers[i] || '';
-      return { ok: autoValid(t, room.letter) && !isCrossed(room, p.id, i), n: norm(t) };
+      return { ok: !!t && letterOk(room, p, i) && !isCrossed(room, p.id, i), n: norm(t) };
     });
     vals.forEach((v, j) => {
       const dup = vals.some((w, k) => k !== j && w.ok && w.n === v.n);
@@ -116,6 +118,7 @@ function publicState(room) {
       score: p.score,
       answers: showAnswers ? p.answers : null,
       auto: showAnswers && p.answers ? p.answers.map(t => autoValid(t, room.letter)) : null,
+      accepted: showAnswers && p.answers ? room.cats.map((_, i) => room.accept.has(p.id + '|' + i)) : null,
       crossed: showAnswers && p.answers ? room.cats.map((_, i) => isCrossed(room, p.id, i)) : null,
       base: showPts ? p.base : null,
       pts: showPts ? p.pts : null,
@@ -137,6 +140,7 @@ function startRound(room) {
   room.votes = new Map();
   room.done = new Set();
   room.over = new Map();
+  room.accept = new Set();
   room.collecting = false;
   room.players.forEach(p => { p.answers = null; p.base = []; p.pts = []; p.roundSum = 0; });
   room.endAt = room.dur ? Date.now() + room.dur * 1000 : null;
@@ -203,7 +207,7 @@ io.on('connection', socket => {
     const r = { code, hostId: socket.id, players: new Map(), cats: DEF.slice(), dur: 90, round: 0,
       letter: null, used: [], status: 'lobby', endAt: null, stoppedBy: null,
       lang: lang === 'ar' ? 'ar' : 'fr',
-      votes: new Map(), done: new Set(), over: new Map(), timer: null, collecting: false };
+      votes: new Map(), done: new Set(), over: new Map(), accept: new Set(), timer: null, collecting: false };
     rooms.set(code, r);
     enter(r, name);
   });
@@ -280,6 +284,18 @@ io.on('connection', socket => {
     checkAllDone(room);
   });
 
+  // el host yna77i "7arf ghalet" 3la kelma (wela yraj3ou)
+  socket.on('accept', ({ playerId, i }) => {
+    i = Number(i);
+    if (!isHost() || (room.status !== 'review' && room.status !== 'results')) return;
+    const target = room.players.get(playerId);
+    if (!target || !target.answers || !target.answers[i]) return;
+    const key = playerId + '|' + i;
+    room.accept.has(key) ? room.accept.delete(key) : room.accept.add(key);
+    if (room.status === 'results') computeScores(room);
+    broadcast(room);
+  });
+
   // ken el host ynajem ybaddel el ni9at mta3 ay kelma (7atta bel 7arf el ghalet)
   socket.on('setpts', ({ playerId, i, v }) => {
     const p = me();
@@ -321,6 +337,7 @@ io.on('connection', socket => {
     if (!room) return;
     room.players.delete(socket.id);
     room.done.delete(socket.id);
+    [...room.accept].forEach(k => { if (k.startsWith(socket.id + '|')) room.accept.delete(k); });
     [...room.over.keys()].forEach(k => { if (k.startsWith(socket.id + '|')) room.over.delete(k); });
     room.votes.forEach((s, k) => {
       s.delete(socket.id);

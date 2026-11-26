@@ -79,6 +79,12 @@ td.mine{background:light-dark(#fde8e7,#3a1716)}.vt{display:inline-block;margin-l
 [dir=rtl] .door::after{right:auto;left:22%}
 [dir=rtl] th,[dir=rtl] td{text-align:right}
 .rules{padding-inline-start:20px;padding-left:revert}
+.stopBar{position:sticky;bottom:0;z-index:5;margin:20px calc(-1 * max(5vw,16px)) 0;padding:12px max(5vw,16px) calc(12px + env(safe-area-inset-bottom));background:var(--wall);border-top:2px solid var(--line);display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.stopBar .note{margin:0;flex:1 1 200px}
+button.big{min-height:56px;min-width:min(260px,100%);font-size:22px;letter-spacing:.02em}
+.tag{font-size:13px;font-weight:800;margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tag.bad{color:var(--red)}.tag.ok{color:var(--ok)}
+.linkBtn{min-height:30px;padding:0 10px;border-radius:8px;font-size:13px;background:var(--ok);color:#fff}
 .pts{display:flex;align-items:center;gap:4px;margin-top:6px}
 .pts .pt{margin:0;min-width:38px}
 button.mini{min-height:32px;min-width:32px;padding:0;border-radius:8px;font-size:18px;line-height:1}

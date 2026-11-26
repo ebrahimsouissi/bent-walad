@@ -29,7 +29,7 @@ const I18N = {
     voteT: 'Manche {r} : barre les mots faux',
     voteHint: 'Appuie sur un mot faux d’un autre joueur pour le barrer. Un mot est barré si plus de la moitié des autres le barrent. Quand tu as fini, appuie sur « J’ai fini ».',
     done: "J'ai fini", undo: 'Je change d’avis', force: 'Compter maintenant', waiting: 'On attend : {n}',
-    wrongL: '(mauvaise lettre)', box: 'Case', total: 'Total',
+    wrongL: 'mauvaise lettre', acceptL: 'Accepter', unacceptL: 'acceptée par l’hôte', acceptHint: 'Appuie sur « Accepter » pour valider le mot malgré la lettre', stop: 'STOP !', box: 'Case', total: 'Total',
     resT: 'Manche {r} : les résultats',
     resHint: 'Les points comptent seulement les mots non barrés.', resHintHost: 'Tu es l’hôte : tu peux ajuster les points de chaque mot avec − et +.',
     next: 'Manche suivante', final: 'Classement final', hostNext: "L'hôte lance la manche suivante.",
@@ -61,7 +61,7 @@ const I18N = {
     voteT: 'الجولة {r}: اشطب الكلمات الخاطئة',
     voteHint: 'اضغط على كلمة خاطئة لدى لاعب آخر لتشطبها. تُشطب الكلمة إذا شطبها أكثر من نصف اللاعبين الآخرين. عندما تنتهي اضغط «انتهيت».',
     done: 'انتهيت', undo: 'غيّرت رأيي', force: 'احسب الآن', waiting: 'ننتظر: {n}',
-    wrongL: '(حرف خاطئ)', box: 'الخانة', total: 'المجموع',
+    wrongL: 'حرف خاطئ', acceptL: 'اقبلها', unacceptL: 'قبلها المضيف', acceptHint: 'اضغط «اقبلها» لاعتماد الكلمة رغم الحرف', stop: 'قف!', box: 'الخانة', total: 'المجموع',
     resT: 'الجولة {r}: النتائج',
     resHint: 'تُحسب النقاط للكلمات غير المشطوبة فقط.', resHintHost: 'أنت المضيف: يمكنك تعديل نقاط كل كلمة بـ − و +.',
     next: 'الجولة التالية', final: 'الترتيب النهائي', hostNext: 'المضيف يبدأ الجولة التالية.',
@@ -188,8 +188,9 @@ function playView() {
   answers = S.cats.map(() => '');
   const adir = S.lang === 'ar' ? 'rtl' : 'ltr';
   return `<div class="stage">${door(S.letter).replace('class="door', 'class="door pop')}<div class="side"><p class="muted" style="margin:0">${t('round')} ${S.round} · ${t('letter')}</p><div class="timer" id="tm">--</div>
-    <div id="stopInfo"></div><button class="red" id="bStop" disabled>${lang === 'ar' ? 'قف!' : 'STOP !'}</button><p class="note">${t('stopHint')}</p></div></div>
-    <form class="grid" id="f">${S.cats.map((k, i) => `<div><label for="a${i}">${esc(catName(k))}</label><input id="a${i}" data-i="${i}" dir="${adir}" lang="${S.lang}" maxlength="40" autocomplete="off" placeholder="${esc(S.letter)}…"></div>`).join('')}</form>`;
+    <div id="stopInfo"></div></div></div>
+    <form class="grid" id="f">${S.cats.map((k, i) => `<div><label for="a${i}">${esc(catName(k))}</label><input id="a${i}" data-i="${i}" dir="${adir}" lang="${S.lang}" maxlength="40" autocomplete="off" placeholder="${esc(S.letter)}…"></div>`).join('')}</form>
+    <div class="stopBar"><button class="red big" id="bStop" disabled>${t('stop')}</button><p class="note">${t('stopHint')}</p></div>`;
 }
 function voteShell(amHost) {
   return `<div class="stage">${door(S.letter)}<div class="side"><h2>${t('voteT', { r: S.round })}</h2>
@@ -238,6 +239,18 @@ function bind(amHost) {
 const word = (tx, crossed) => tx ? `<bdi class="${crossed ? 'x' : ''}" dir="auto">${esc(tx)}</bdi>` : '<span class="muted">—</span>';
 const head = ps => `<thead><tr><th>${t('box')}</th>${ps.map(p => `<th><bdi>${esc(p.name)}</bdi>${p.id === you ? ' (' + t('you') + ')' : ''}${S.status === 'review' && S.done.includes(p.id) ? ' ✓' : ''}</th>`).join('')}</tr></thead>`;
 
+// "7arf ghalet": par défaut mchateb; el host ynajem ya9belha
+function letterTag(p, i) {
+  const tx = p.answers[i];
+  if (!tx || p.auto[i]) return '';
+  const amHost = S.hostId === you;
+  if (p.accepted[i]) return `<div class="tag ok">✓ ${t('unacceptL')}${amHost ? ` <button class="mini ghost acc" data-p="${esc(p.id)}" data-i="${i}" aria-label="${t('reset')}">↺</button>` : ''}</div>`;
+  return `<div class="tag bad">${t('wrongL')}${amHost ? ` <button class="acc linkBtn" data-p="${esc(p.id)}" data-i="${i}" title="${t('acceptHint')}">${t('acceptL')}</button>` : ''}</div>`;
+}
+function bindAccept(T) {
+  T.querySelectorAll('.acc').forEach(b => (b.onclick = e => { e.stopPropagation(); socket.emit('accept', { playerId: b.dataset.p, i: Number(b.dataset.i) }); }));
+}
+
 function renderVote() {
   const T = $('#rv'), ps = S.players.filter(p => p.answers), votes = new Map(S.votes), done = new Set(S.done);
   const iDone = done.has(you);
@@ -249,10 +262,11 @@ function renderVote() {
     S.cats.map((k, i) => `<tr><td><b>${esc(catName(k))}</b></td>${ps.map(p => {
       const tx = p.answers[i] || '', v = votes.get(p.id + '|' + i) || [], mine = v.includes(you);
       const can = tx && p.id !== you && !iDone;
-      const crossed = p.crossed[i] || (tx && !p.auto[i]);
-      return `<td class="c${can ? ' h' : ''}${mine ? ' mine' : ''}" data-p="${esc(p.id)}" data-i="${i}">${word(tx, crossed)}${v.length ? `<span class="vt">✗ ${v.length}</span>` : ''}${tx && !p.auto[i] ? ` <span class="note">${t('wrongL')}</span>` : ''}</td>`;
+      const crossed = p.crossed[i] || (tx && !p.auto[i] && !p.accepted[i]);
+      return `<td class="c${can ? ' h' : ''}${mine ? ' mine' : ''}" data-p="${esc(p.id)}" data-i="${i}">${word(tx, crossed)}${v.length ? `<span class="vt">✗ ${v.length}</span>` : ''}${letterTag(p, i)}</td>`;
     }).join('')}</tr>`).join('') + '</tbody>';
-  T.querySelectorAll('td.h').forEach(td => (td.onclick = () => socket.emit('vote', { playerId: td.dataset.p, i: Number(td.dataset.i) })));
+  T.querySelectorAll('td.h').forEach(td => (td.onclick = e => { if (!e.target.closest('.acc')) socket.emit('vote', { playerId: td.dataset.p, i: Number(td.dataset.i) }); }));
+  bindAccept(T);
 }
 
 function renderResults(amHost) {
@@ -260,7 +274,7 @@ function renderResults(amHost) {
   T.innerHTML = head(ps) + '<tbody>' +
     S.cats.map((k, i) => `<tr><td><b>${esc(catName(k))}</b></td>${ps.map(p => {
       const tx = p.answers[i] || '', pts = p.pts[i] || 0, by = over.get(p.id + '|' + i);
-      return `<td>${word(tx, !pts && !!tx)}
+      return `<td>${word(tx, !pts && !!tx)}${letterTag(p, i)}
         <div class="pts" data-p="${esc(p.id)}" data-i="${i}" data-v="${pts}">
           ${amHost ? `<button class="mini" data-d="-5" aria-label="${t('minus')}" ${pts <= 0 ? 'disabled' : ''}>−</button>` : ''}
           <span class="pt p${pts >= 10 ? 10 : pts >= 5 ? 5 : 0}">${pts}</span>
@@ -269,6 +283,7 @@ function renderResults(amHost) {
         </div>${by ? `<div class="note edited"></div>` : ''}</td>`;
     }).join('')}</tr>`).join('') +
     `<tr class="sum"><td>${t('total')}</td>${ps.map(p => `<td>+${p.roundSum}</td>`).join('')}</tr></tbody>`;
+  bindAccept(T);
   // "modifié par X" (texte venant d'un autre joueur: textContent)
   T.querySelectorAll('.pts').forEach(box => {
     const by = over.get(box.dataset.p + '|' + box.dataset.i);

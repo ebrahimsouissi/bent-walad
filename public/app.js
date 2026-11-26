@@ -71,10 +71,12 @@ function render() {
     stageKey = key;
     if (S.status === 'lobby') st.innerHTML = amHost ? lobbyHost() : lobbyGuest();
     if (S.status === 'play') st.innerHTML = playView();
-    if (S.status === 'review') st.innerHTML = reviewShell(amHost);
+    if (S.status === 'review') st.innerHTML = voteShell(amHost);
+    if (S.status === 'results') st.innerHTML = resultsShell(amHost);
     bind(amHost);
   }
-  if (S.status === 'review') renderReview(amHost);
+  if (S.status === 'review') renderVote(amHost);
+  if (S.status === 'results') renderResults();
 }
 
 function lobbyHost() {
@@ -99,10 +101,17 @@ function playView() {
     <div id="stopInfo"></div><button class="red" id="bStop" disabled>STOP!</button><p class="note">STOP yet7all ki tkammel el cases lkol.</p></div></div>
     <form class="grid" id="f">${S.cats.map((k, i) => `<div><label for="a${i}">${esc(CATS[k])}</label><input id="a${i}" data-i="${i}" maxlength="40" autocomplete="off" placeholder="${esc(S.letter)}…"></div>`).join('')}</form>`;
 }
-function reviewShell(amHost) {
+function voteShell(amHost) {
+  return `<div class="stage"><div class="door"><b>${esc(S.letter)}</b></div><div class="side"><h2>Round ${S.round}: chateb el ghalet</h2>
+    <p class="muted">Enzel 3la kelma ghalta mta3 joueur ekher bech tchatebha. Kelma tetchateb ki akther men nos les autres ychatbouha. Ki tkammel, enzel "Kammelt".</p>
+    <div class="row"><button id="bDone">Kammelt</button>${amHost ? '<button class="ghost" id="bForce">7seb tawa</button>' : ''}</div>
+    <p class="note" id="waitFor"></p></div></div>
+    <div class="scroll"><table id="rv"></table></div>`;
+}
+function resultsShell(amHost) {
   return `<div class="stage"><div class="door"><b>${esc(S.letter)}</b></div><div class="side"><h2>Round ${S.round}: el natija</h2>
-    <p class="muted">${amHost ? 'Enzel 3la kelma bech trefuseha wela traja3ha.' : 'El host yraja3 el kelmet w ybda el round elli ba3dou.'}</p>
-    ${amHost ? '<div class="row"><button id="bNext">Round jdid</button><button class="ghost" id="bLob">Classement final</button></div>' : ''}</div></div>
+    <p class="muted">El score m7soub ken 3al kelmet elli mouch mchatbin.</p>
+    ${amHost ? '<div class="row"><button id="bNext">Round jdid</button><button class="ghost" id="bLob">Classement final</button></div>' : '<p class="note">El host ybda el round elli ba3dou.</p>'}</div></div>
     <div class="scroll"><table id="rv"></table></div>`;
 }
 
@@ -125,21 +134,45 @@ function bind(amHost) {
     $('#bStop').onclick = () => { sentRound = S.round; socket.emit('stop', { answers }); };
     $('#a0').focus();
   }
-  if (S.status === 'review' && amHost) {
+  if (S.status === 'review') {
+    $('#bDone').onclick = () => socket.emit('done');
+    if (amHost) $('#bForce').onclick = () => socket.emit('force');
+  }
+  if (S.status === 'results' && amHost) {
     $('#bNext').onclick = () => socket.emit('next');
     $('#bLob').onclick = () => socket.emit('lobby');
   }
 }
 
-function renderReview(amHost) {
-  const T = $('#rv'), ps = S.players.filter(p => p.answers), rej = new Set(S.rej);
+function cellWord(t, crossed) {
+  return t ? `<span class="${crossed ? 'x' : ''}">${esc(t)}</span>` : '<span class="muted">—</span>';
+}
+
+function renderVote() {
+  const T = $('#rv'), ps = S.players.filter(p => p.answers), votes = new Map(S.votes), done = new Set(S.done);
+  const iDone = done.has(you);
+  $('#bDone').textContent = iDone ? 'Nbaddel ra2yi' : 'Kammelt';
+  $('#bDone').className = iDone ? 'ghost' : '';
+  const waiting = ps.filter(p => !done.has(p.id)).map(p => p.name);
+  $('#waitFor').textContent = waiting.length ? 'Nestannaw: ' + waiting.join(', ') : '';
+  T.innerHTML = `<thead><tr><th>Case</th>${ps.map(p => `<th>${esc(p.name)}${p.id === you ? ' (enti)' : ''}${done.has(p.id) ? ' ✓' : ''}</th>`).join('')}</tr></thead><tbody>` +
+    S.cats.map((k, i) => `<tr><td><b>${esc(CATS[k])}</b></td>${ps.map(p => {
+      const t = p.answers[i] || '', v = votes.get(p.id + '|' + i) || [], mine = v.includes(you);
+      const can = t && p.id !== you && !iDone;
+      const crossed = p.crossed[i] || (t && !p.auto[i]);
+      return `<td class="c${can ? ' h' : ''}${mine ? ' mine' : ''}" data-p="${esc(p.id)}" data-i="${i}">${cellWord(t, crossed)}${v.length ? `<span class="vt">✗ ${v.length}</span>` : ''}${t && !p.auto[i] ? ' <span class="note">(7arf ghalet)</span>' : ''}</td>`;
+    }).join('')}</tr>`).join('') + '</tbody>';
+  T.querySelectorAll('td.h').forEach(td => (td.onclick = () => socket.emit('vote', { playerId: td.dataset.p, i: Number(td.dataset.i) })));
+}
+
+function renderResults() {
+  const T = $('#rv'), ps = S.players.filter(p => p.answers);
   T.innerHTML = `<thead><tr><th>Case</th>${ps.map(p => `<th>${esc(p.name)}${p.id === you ? ' (enti)' : ''}</th>`).join('')}</tr></thead><tbody>` +
     S.cats.map((k, i) => `<tr><td><b>${esc(CATS[k])}</b></td>${ps.map(p => {
       const t = p.answers[i] || '', pts = p.pts[i] || 0;
-      return `<td class="c${amHost && t ? ' h' : ''}" data-p="${esc(p.id)}" data-i="${i}"><span class="${pts || !t ? '' : 'x'}">${t ? esc(t) : '<span class="muted">—</span>'}</span>${rej.has(p.id + '|' + i) ? ' <span class="note">(refusée)</span>' : ''}<span class="pt p${pts}">${pts}</span></td>`;
+      return `<td>${cellWord(t, t && !pts)}<span class="pt p${pts}">${pts}</span></td>`;
     }).join('')}</tr>`).join('') +
     `<tr class="sum"><td>Total</td>${ps.map(p => `<td>+${p.roundSum}</td>`).join('')}</tr></tbody>`;
-  if (amHost) T.querySelectorAll('td.h').forEach(td => (td.onclick = () => socket.emit('reject', { playerId: td.dataset.p, i: Number(td.dataset.i) })));
 }
 
 // ---------- minuterie ----------

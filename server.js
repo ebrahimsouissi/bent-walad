@@ -1,5 +1,5 @@
 // Bent w Walad - serveur temps réel (Express + Socket.IO)
-// El serveur howa elli y9arrer: el 7arf, el wa9t, el STOP w el score.
+// El serveur howa elli y9arrer: el 7arf, el wa9t, el STOP, el votes w el score.
 
 const express = require('express');
 const http = require('http');
@@ -21,10 +21,11 @@ const rooms = new Map(); // code -> room
 const norm = s => String(s || '').toLowerCase().normalize('NFD')
   .replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9؀-ۿ]/g, '');
 
-function isValid(word, letter) {
+// verification automatique: fergha, 9sira barcha, wela ma tebdach bel 7arf
+function autoValid(word, letter) {
   const n = norm(word);
   if (n.length < 2) return false;
-  if (/[؀-ۿ]/.test(n)) return true; // kelma bel 3arbi: el host y9arrer
+  if (/[؀-ۿ]/.test(n)) return true; // kelma bel 3arbi: les joueurs y9arrrou
   return n[0] === letter.toLowerCase();
 }
 
@@ -43,15 +44,24 @@ function pickLetter(used) {
 }
 
 const clean = (s, max) => String(s ?? '').replace(/[\u0000-\u001f]/g, '').trim().slice(0, max);
+const answered = room => [...room.players.values()].filter(p => p.answers);
 
-// ---------- score ----------
+// ---------- votes ----------
+// kelma tetchateb ki akther men nos les autres joueurs (ghir moula-ha) ychatbouha
+function isCrossed(room, playerId, i) {
+  const voters = room.votes.get(playerId + '|' + i);
+  if (!voters || !voters.size) return false;
+  const others = answered(room).filter(p => p.id !== playerId).length;
+  return others > 0 && voters.size > others / 2;
+}
+
+// ---------- score (ken 3al kelmet elli mouch mchatbin) ----------
 function computeScores(room) {
-  const players = [...room.players.values()].filter(p => p.answers);
+  const players = answered(room);
   room.cats.forEach((_, i) => {
     const vals = players.map(p => {
       const t = p.answers[i] || '';
-      const ok = isValid(t, room.letter) && !room.rej.has(p.id + '|' + i);
-      return { ok, n: norm(t) };
+      return { ok: autoValid(t, room.letter) && !isCrossed(room, p.id, i), n: norm(t) };
     });
     vals.forEach((v, j) => {
       const dup = vals.some((w, k) => k !== j && w.ok && w.n === v.n);
@@ -63,11 +73,12 @@ function computeScores(room) {
 
 // ---------- état public envoyé aux joueurs ----------
 function publicState(room) {
-  const showAnswers = room.status === 'review';
+  const showAnswers = room.status === 'review' || room.status === 'results';
+  const showPts = room.status === 'results';
   return {
     code: room.code,
     hostId: room.hostId,
-    status: room.status, // lobby | play | review
+    status: room.status, // lobby | play | review (votes) | results
     cats: room.cats,
     dur: room.dur,
     round: room.round,
@@ -75,14 +86,17 @@ function publicState(room) {
     endAt: room.endAt,
     serverNow: Date.now(),
     stoppedBy: room.stoppedBy,
-    rej: [...room.rej],
+    votes: [...room.votes].map(([k, s]) => [k, [...s]]),
+    done: [...room.done],
     players: [...room.players.values()].map(p => ({
       id: p.id,
       name: p.name,
       score: p.score,
       answers: showAnswers ? p.answers : null,
-      pts: showAnswers ? p.pts : null,
-      roundSum: showAnswers ? p.roundSum : null,
+      auto: showAnswers && p.answers ? p.answers.map(t => autoValid(t, room.letter)) : null,
+      crossed: showAnswers && p.answers ? room.cats.map((_, i) => isCrossed(room, p.id, i)) : null,
+      pts: showPts ? p.pts : null,
+      roundSum: showPts ? p.roundSum : null,
     })),
   };
 }
@@ -97,7 +111,8 @@ function startRound(room) {
   room.used = [...room.used, room.letter].slice(-12);
   room.status = 'play';
   room.stoppedBy = null;
-  room.rej = new Set();
+  room.votes = new Map();
+  room.done = new Set();
   room.collecting = false;
   room.players.forEach(p => { p.answers = null; p.pts = []; p.roundSum = 0; });
   room.endAt = room.dur ? Date.now() + room.dur * 1000 : null;
@@ -105,7 +120,7 @@ function startRound(room) {
   broadcast(room);
 }
 
-// STOP: n9oulou l'kol yab3thou ijabethom, w ba3d chwaya nmchiw lel review
+// STOP: n9oulou l'kol yab3thou ijabethom
 function stopRound(room, byName) {
   if (room.status !== 'play' || room.collecting) return;
   clearTimeout(room.timer);
@@ -115,14 +130,27 @@ function stopRound(room, byName) {
   room.timer = setTimeout(() => toReview(room), 2000);
 }
 
+// phase mta3 el tachtib
 function toReview(room) {
   if (room.status !== 'play') return;
   clearTimeout(room.timer);
   room.collecting = false;
   room.players.forEach(p => { if (!p.answers) p.answers = room.cats.map(() => ''); });
   room.status = 'review';
-  computeScores(room);
   broadcast(room);
+}
+
+// l'kol kammlou ychatbou: n7esbou
+function toResults(room) {
+  if (room.status !== 'review') return;
+  computeScores(room);
+  room.status = 'results';
+  broadcast(room);
+}
+
+function checkAllDone(room) {
+  const ps = answered(room);
+  if (room.status === 'review' && ps.length && ps.every(p => room.done.has(p.id))) toResults(room);
 }
 
 function commitRound(room) {
@@ -149,7 +177,8 @@ io.on('connection', socket => {
     if (!name || room) return;
     const code = newCode();
     const r = { code, hostId: socket.id, players: new Map(), cats: DEF.slice(), dur: 90, round: 0,
-      letter: null, used: [], status: 'lobby', endAt: null, stoppedBy: null, rej: new Set(), timer: null, collecting: false };
+      letter: null, used: [], status: 'lobby', endAt: null, stoppedBy: null,
+      votes: new Map(), done: new Set(), timer: null, collecting: false };
     rooms.set(code, r);
     enter(r, name);
   });
@@ -200,22 +229,45 @@ io.on('connection', socket => {
     if ([...room.players.values()].every(x => x.answers)) toReview(room);
   });
 
-  socket.on('reject', ({ playerId, i }) => {
-    if (!isHost() || room.status !== 'review') return;
-    const key = playerId + '|' + Number(i);
-    room.rej.has(key) ? room.rej.delete(key) : room.rej.add(key);
-    computeScores(room);
+  // joueur ychateb (wela yna77i el tachtib) 3la kelmet joueur ekher
+  socket.on('vote', ({ playerId, i }) => {
+    const p = me();
+    i = Number(i);
+    if (!p || room.status !== 'review' || !p.answers || room.done.has(p.id)) return;
+    const target = room.players.get(playerId);
+    if (!target || target.id === p.id || !target.answers || !(i >= 0 && i < room.cats.length)) return;
+    if (!target.answers[i]) return;
+    const key = playerId + '|' + i;
+    if (!room.votes.has(key)) room.votes.set(key, new Set());
+    const s = room.votes.get(key);
+    s.has(p.id) ? s.delete(p.id) : s.add(p.id);
+    if (!s.size) room.votes.delete(key);
     broadcast(room);
   });
 
+  // "Kammelt": el joueur wfé mel tachtib (yenajem yraja3 ma dem l'kol ma kammlouch)
+  socket.on('done', () => {
+    const p = me();
+    if (!p || room.status !== 'review' || !p.answers) return;
+    room.done.has(p.id) ? room.done.delete(p.id) : room.done.add(p.id);
+    broadcast(room);
+    checkAllDone(room);
+  });
+
+  // el host ynajem y7seb ken 7ad 9a3ed ma ykammelch
+  socket.on('force', () => {
+    if (!isHost()) return;
+    toResults(room);
+  });
+
   socket.on('next', () => {
-    if (!isHost() || room.status !== 'review') return;
+    if (!isHost() || room.status !== 'results') return;
     commitRound(room);
     startRound(room);
   });
 
   socket.on('lobby', () => {
-    if (!isHost() || room.status !== 'review') return;
+    if (!isHost() || room.status !== 'results') return;
     commitRound(room);
     room.status = 'lobby';
     broadcast(room);
@@ -224,6 +276,11 @@ io.on('connection', socket => {
   socket.on('disconnect', () => {
     if (!room) return;
     room.players.delete(socket.id);
+    room.done.delete(socket.id);
+    room.votes.forEach((s, k) => {
+      s.delete(socket.id);
+      if (!s.size || k.startsWith(socket.id + '|')) room.votes.delete(k);
+    });
     if (room.players.size === 0) {
       clearTimeout(room.timer);
       rooms.delete(room.code);
@@ -232,6 +289,7 @@ io.on('connection', socket => {
     if (room.hostId === socket.id) room.hostId = room.players.keys().next().value; // host jdid
     if (room.status === 'play' && room.collecting && [...room.players.values()].every(x => x.answers)) toReview(room);
     broadcast(room);
+    checkAllDone(room);
   });
 });
 

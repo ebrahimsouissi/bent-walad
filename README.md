@@ -35,7 +35,8 @@ Node.js + Express + Socket.IO. Bla base de données: les salles y3ichou fel mém
 - El host yekhtar les cases (3 au minimum) w el wa9t, w yenzel "Ebda el partie".
 - Kol round yo5rej 7arf. Elli ykammel el cases lkol ynajem yenzel **STOP**, wela el wa9t youfa.
 - Score: kelma s7i7a w wa7dek **10**, kelma ktebha 7ad ekher **5**, fergha/ghalta **0**.
-- El host ynajem yenzel 3la kelma fel tableau bech yrefuseha.
+- Ba3d el STOP, **kol joueur ychateb** el kelmet el ghaltin mta3 les autres (yenzel 3la el kelma). Kelma tetchateb ki akther men nos les autres joueurs ychatbouha.
+- Ki l'kol yenzlou **"Kammelt"**, el score yet7seb **ken 3al kelmet elli mouch mchatbin**. El host ynajem yenzel "7seb tawa" ken 7ad 9a3ed ma ykammelch.
 - Ken el host yo5rej, joueur ekher ywalli host automatiquement.
 
 ## Structure
@@ -49,5 +50,4 @@ public/app.js      el client (affichage + Socket.IO)
 ## Idées bech tzid
 
 - Base de données (SQLite/Supabase) bech tsauvegardi les scores.
-- Mode "vote": les joueurs lkol yvotiw 3al kelmet mouch ken el host.
 - Dictionnaire bech yverifi el kelmet automatiquement.
